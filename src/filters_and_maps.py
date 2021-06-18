@@ -9,18 +9,23 @@ import torch.nn as nn
 import cv2 as cv
 import argparse
 from torchvision import models, transforms
+from args import argument_parser, image_dataset_kwargs, optimizer_kwargs
+from torchreid import models as m
+# from torchreid.models.resnet import resnet50
 
 """ Argument Parsing """
-ap = argparse.ArgumentParser()
-ap.add_argument('-i', '--image', required=True,
-    help='path to image')
-args = vars(ap.parse_args())
 
 
+parser = argument_parser()
+args = parser.parse_args()
 
 
 # load the model
-model = models.resnet50(pretrained=True)
+# model = models.resnet50(pretrained=True)
+
+model = m.init_model(name=args.arch, num_classes=751, loss={'xent'}, use_gpu=True, args=vars(args))
+pretrained_model = model.eval()
+
 print(model)
 model_weights = [] # we will save the conv layer weights in this list
 conv_layers = [] # we will save the 49 conv layers in this list
