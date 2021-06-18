@@ -43,3 +43,66 @@ for i in range(len(model_children)):
                     model_weights.append(child.weight)
                     conv_layers.append(child)
 print(f"Total convolutional layers: {counter}")
+
+
+""" This section prints convs and weights """
+# take a look at the conv layers and the respective weights
+for weight, conv in zip(model_weights, conv_layers):
+    # print(f"WEIGHT: {weight} \nSHAPE: {weight.shape}")
+    print(f"CONV: {conv} ====> SHAPE: {weight.shape}")
+
+
+# visualize the first conv layer filters using matplotlib
+plt.figure(figsize=(20, 17))
+for i, filter in enumerate(model_weights[0]):
+    plt.subplot(8, 8, i+1) # (8, 8) because in conv0 we have 7x7 filters and total of 64 (see printed shapes)
+    plt.imshow(filter[0, :, :].detach(), cmap='autumn')
+    plt.axis('off')
+    plt.savefig('../outputs/filter.png')
+plt.show()
+
+
+# read and visualize an image
+img = cv.imread(f"../input/{args['image']}")
+img = cv.cvtColor(img, cv.COLOR_BGR2RGB)
+plt.imshow(img)
+plt.show()
+# define the transforms
+transform = transforms.Compose([
+    transforms.ToPILImage(),
+    transforms.Resize((512, 512)),
+    transforms.ToTensor(),
+])
+img = np.array(img)
+# apply the transforms
+img = transform(img)
+print(img.size())
+# unsqueeze to add a batch dimension
+img = img.unsqueeze(0)
+print(img.size())
+
+# pass the image through all the layers
+results = [conv_layers[0](img)]
+for i in range(1, len(conv_layers)):
+    # pass the result from the last layer to the next layer
+    results.append(conv_layers[i](results[-1]))
+# make a copy of the `results`
+outputs = results
+
+# visualize 64 features from each layer 
+# (although there are more feature maps in the upper layers)
+for num_layer in range(len(outputs)):
+    plt.figure(figsize=(30, 30))
+    layer_viz = outputs[num_layer][0, :, :, :]
+    layer_viz = layer_viz.data
+    print(layer_viz.size())
+    for i, filter in enumerate(layer_viz):
+        if i == 64: # we will visualize only 8x8 blocks from each layer
+            break
+        plt.subplot(8, 8, i + 1)
+        plt.imshow(filter, cmap='gray')
+        plt.axis("off")
+    print(f"Saving layer {num_layer} feature maps...")
+    plt.savefig(f"../outputs/layer_{num_layer}.png")
+    # plt.show()
+    plt.close()
